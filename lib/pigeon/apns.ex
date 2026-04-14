@@ -161,6 +161,8 @@ defmodule Pigeon.APNS do
   alias Pigeon.APNS.ConfigParser
   alias Pigeon.Http2.{Client, Stream}
 
+  require Logger
+
   @impl true
   def init(opts) do
     config = ConfigParser.parse(opts)
@@ -195,11 +197,39 @@ defmodule Pigeon.APNS do
     {:noreply, state}
   end
 
-  def handle_info(:ping, state) do
-    Client.default().send_ping(state.socket)
-    Configurable.schedule_ping(state.config)
+  def handle_info({:kadabra_closed, _pid}, state) do
+    Logger.debug("Pigeon.APNS: Kadabra connection closed, shutting down gracefully")
+    {:stop, :normal, state}
+  end
 
-    {:noreply, state}
+  def handle_info({:kadabra_error, reason, _pid}, state) do
+    Logger.warning("Pigeon.APNS: Kadabra SSL error: #{inspect(reason)}, shutting down")
+    {:stop, {:ssl_error, reason}, state}
+  end
+
+  def handle_info({:kadabra_connection_error, error, reason}, state) do
+    Logger.error("Pigeon.APNS: Kadabra connection error: #{error} - #{inspect(reason)}")
+    {:stop, {:connection_error, error}, state}
+  end
+
+  def handle_info(:ping, state) do
+    try do
+      Client.default().send_ping(state.socket)
+      Configurable.schedule_ping(state.config)
+      {:noreply, state}
+    catch
+      :exit, {:noproc, _} ->
+        Logger.debug("Pigeon.APNS: Kadabra process not found (already dead), shutting down gracefully")
+        {:stop, :normal, state}
+
+      :exit, {:timeout, _} ->
+        Logger.warning("Pigeon.APNS: Ping timeout, shutting down")
+        {:stop, :ping_timeout, state}
+
+      error ->
+        Logger.error("Pigeon.APNS: Unexpected error during ping: #{inspect(error)}")
+        {:stop, {:ping_failed, error}, state}
+    end
   end
 
   def handle_info({:closed, _}, %{config: config} = state) do
