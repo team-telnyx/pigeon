@@ -232,15 +232,21 @@ defmodule Pigeon.APNS do
     end
   end
 
-  def handle_info({:closed, _}, %{config: config} = state) do
+  def handle_info({:closed, _}, %{config: config, socket: socket} = state) do
+    # Ensure the old socket process is terminated before reconnecting
+    # to prevent orphaned Kadabra processes from accumulating in memory.
+    if is_pid(socket) do
+      Process.exit(socket, :normal)
+    end
+
     case connect_socket(config) do
-      {:ok, socket} ->
+      {:ok, new_socket} ->
         Configurable.schedule_ping(config)
 
         state =
           state
           |> reset_stream_id()
-          |> Map.put(:socket, socket)
+          |> Map.put(:socket, new_socket)
 
         {:noreply, state}
 
