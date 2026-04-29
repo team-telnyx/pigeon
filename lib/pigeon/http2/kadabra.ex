@@ -45,4 +45,8 @@ defmodule Pigeon.Http2.Client.Kadabra do
   def handle_end_stream(msg, _state) do
     msg
   end
+
+  def close(pid) do
+    Kadabra.close(pid)
+  end
 end

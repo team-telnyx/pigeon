@@ -34,4 +34,6 @@ defmodule Pigeon.Http2.Client do
   @callback handle_end_stream(msg :: term, state :: term) ::
               {:ok, %Pigeon.Http2.Stream{}}
               | any
+
+  @callback close(pid) :: :ok
 end
