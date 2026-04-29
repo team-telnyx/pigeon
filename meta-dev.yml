@@ -1,0 +1,9 @@
+names:
+  service: pigeon
+
+project:
+  squad: webrtc.squad
+  primary_maintainer: lucas
+  secondary_maintainer: artemp
+  public_api: false
+  private_api: false
