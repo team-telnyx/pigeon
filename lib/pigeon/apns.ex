@@ -236,7 +236,7 @@ defmodule Pigeon.APNS do
     # Ensure the old socket process is terminated before reconnecting
     # to prevent orphaned Kadabra processes from accumulating in memory.
     if is_pid(socket) do
-      Process.exit(socket, :normal)
+      Client.default().close(socket)
     end
 
     case connect_socket(config) do
