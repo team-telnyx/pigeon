@@ -232,11 +232,28 @@ defmodule Pigeon.APNS do
     end
   end
 
-  def handle_info({:closed, _}, %{config: config, socket: socket} = state) do
-    # Ensure the old socket process is terminated before reconnecting
-    # to prevent orphaned Kadabra processes from accumulating in memory.
-    if is_pid(socket) do
-      Client.default().close(socket)
+  def handle_info({:closed, pool_pid}, %{config: config, socket: socket} = state) do
+    # Close the old socket ONLY if it is the one that sent this message and
+    # is still alive. This prevents two leak paths:
+    #
+    # 1. Original leak: old socket still alive when :closed arrives (race
+    #    between message delivery and process exit). Without closing, the old
+    #    ConnectionPool + Connection survive as orphans.
+    #
+    # 2. PR #178 leak: calling close unconditionally crashes the worker when
+    #    the socket is already dead (during ConnectionSupervisor.stop_connection).
+    #    The Dispatcher restarts the worker, creating a fresh orphan.
+    #
+    # 3. Infinite loop: Connection.terminate/2 sends a second :closed message
+    #    when we explicitly close it. socket == pool_pid prevents closing the
+    #    newly-reconnected socket.
+
+    if is_pid(socket) and socket == pool_pid and Process.alive?(socket) do
+      try do
+        Client.default().close(socket)
+      catch
+        :exit, {:noproc, _} -> :ok
+      end
     end
 
     case connect_socket(config) do
