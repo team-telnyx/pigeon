@@ -14,7 +14,6 @@
    ```
 
    This config sets up a `default` socket connection to send to APNS servers. `cert` and `key` can be any of the following:
-
    - Static file path
    - Full-text string of the file contents (useful for environment variables)
    - `{:my_app, "certs/cert.pem"}` (indicates path relative to the `priv` folder of the given application)
