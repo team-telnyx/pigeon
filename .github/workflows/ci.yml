@@ -1,10 +1,11 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
-    branches: ["master"]
+    branches: ["master", "main", "v2.0.0-rc.2-base", "fix/**"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "main", "v2.0.0-rc.2-base"]
 
 jobs:
   prettier:
