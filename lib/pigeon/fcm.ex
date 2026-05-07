@@ -103,6 +103,8 @@ defmodule Pigeon.FCM do
   alias Pigeon.{Configurable, NotificationQueue}
   alias Pigeon.Http2.{Client, Stream}
 
+  require Logger
+
   @refresh :"$refresh"
   @retry_after 1000
 
@@ -154,7 +156,37 @@ defmodule Pigeon.FCM do
     {:noreply, state}
   end
 
-  def handle_info({:closed, _}, %{config: config} = state) do
+  def handle_info(
+        {:closed, pool_pid},
+        %{config: config, socket: socket} = state
+      ) do
+    if is_pid(socket) and socket == pool_pid and Process.alive?(socket) do
+      try do
+        Client.default().close(socket)
+      catch
+        :exit, {:noproc, _} = reason ->
+          Logger.debug(
+            "Pigeon.FCM: HTTP/2 socket already closed before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
+
+        :exit, {:normal, _} = reason ->
+          Logger.debug(
+            "Pigeon.FCM: HTTP/2 socket closed normally before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
+
+        :exit, {:shutdown, _} = reason ->
+          Logger.debug(
+            "Pigeon.FCM: HTTP/2 socket shutdown before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
+      end
+    end
+
     case connect_socket(config) do
       {:ok, socket} ->
         Configurable.schedule_ping(config)

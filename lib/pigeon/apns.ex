@@ -198,17 +198,26 @@ defmodule Pigeon.APNS do
   end
 
   def handle_info({:kadabra_closed, _pid}, state) do
-    Logger.debug("Pigeon.APNS: Kadabra connection closed, shutting down gracefully")
+    Logger.debug(
+      "Pigeon.APNS: Kadabra connection closed, shutting down gracefully"
+    )
+
     {:stop, :normal, state}
   end
 
   def handle_info({:kadabra_error, reason, _pid}, state) do
-    Logger.warning("Pigeon.APNS: Kadabra SSL error: #{inspect(reason)}, shutting down")
+    Logger.warning(
+      "Pigeon.APNS: Kadabra SSL error: #{inspect(reason)}, shutting down"
+    )
+
     {:stop, {:ssl_error, reason}, state}
   end
 
   def handle_info({:kadabra_connection_error, error, reason}, state) do
-    Logger.error("Pigeon.APNS: Kadabra connection error: #{error} - #{inspect(reason)}")
+    Logger.error(
+      "Pigeon.APNS: Kadabra connection error: #{error} - #{inspect(reason)}"
+    )
+
     {:stop, {:connection_error, error}, state}
   end
 
@@ -219,7 +228,10 @@ defmodule Pigeon.APNS do
       {:noreply, state}
     catch
       :exit, {:noproc, _} ->
-        Logger.debug("Pigeon.APNS: Kadabra process not found (already dead), shutting down gracefully")
+        Logger.debug(
+          "Pigeon.APNS: Kadabra process not found (already dead), shutting down gracefully"
+        )
+
         {:stop, :normal, state}
 
       :exit, {:timeout, _} ->
@@ -227,12 +239,18 @@ defmodule Pigeon.APNS do
         {:stop, :ping_timeout, state}
 
       error ->
-        Logger.error("Pigeon.APNS: Unexpected error during ping: #{inspect(error)}")
+        Logger.error(
+          "Pigeon.APNS: Unexpected error during ping: #{inspect(error)}"
+        )
+
         {:stop, {:ping_failed, error}, state}
     end
   end
 
-  def handle_info({:closed, pool_pid}, %{config: config, socket: socket} = state) do
+  def handle_info(
+        {:closed, pool_pid},
+        %{config: config, socket: socket} = state
+      ) do
     # Close the old socket ONLY if it is the one that sent this message and
     # is still alive. This prevents two leak paths:
     #
@@ -252,7 +270,26 @@ defmodule Pigeon.APNS do
       try do
         Client.default().close(socket)
       catch
-        :exit, {:noproc, _} -> :ok
+        :exit, {:noproc, _} = reason ->
+          Logger.debug(
+            "Pigeon.APNS: HTTP/2 socket already closed before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
+
+        :exit, {:normal, _} = reason ->
+          Logger.debug(
+            "Pigeon.APNS: HTTP/2 socket closed normally before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
+
+        :exit, {:shutdown, _} = reason ->
+          Logger.debug(
+            "Pigeon.APNS: HTTP/2 socket shutdown before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
       end
     end
 
