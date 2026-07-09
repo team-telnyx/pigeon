@@ -72,4 +72,7 @@ jobs:
           if [ -f test/pigeon/dispatcher_worker_test.exs ]; then
             files="$files test/pigeon/dispatcher_worker_test.exs"
           fi
+          if [ -f test/pigeon/apns_closed_teardown_test.exs ]; then
+            files="$files test/pigeon/apns_closed_teardown_test.exs"
+          fi
           mix test $files
