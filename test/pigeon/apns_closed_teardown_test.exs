@@ -48,7 +48,9 @@ defmodule Pigeon.APNSClosedTeardownTest do
     socket = spawn(fn -> Process.sleep(:infinity) end)
 
     on_exit(fn ->
-      if Process.alive?(socket), do: Process.exit(socket, :kill)
+      if Process.alive?(socket) do
+        Process.exit(socket, :kill)
+      end
     end)
 
     config = %Config{uri: "api.push.apple.com"}
