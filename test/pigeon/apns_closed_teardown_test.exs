@@ -46,7 +46,10 @@ defmodule Pigeon.APNSClosedTeardownTest do
 
   test "a :closed teardown whose close/1 exits with a nested :shutdown does not crash the worker" do
     socket = spawn(fn -> Process.sleep(:infinity) end)
-    on_exit(fn -> if Process.alive?(socket), do: Process.exit(socket, :kill) end)
+
+    on_exit(fn ->
+      if Process.alive?(socket), do: Process.exit(socket, :kill)
+    end)
 
     config = %Config{uri: "api.push.apple.com"}
     state = %APNS{socket: socket, config: config}
