@@ -290,6 +290,20 @@ defmodule Pigeon.APNS do
           )
 
           :ok
+
+        :exit, reason ->
+          # Best-effort teardown of a dying connection. Closing it is a nested
+          # GenServer.call chain (worker -> ConnectionPool -> Connection), so the
+          # exit can arrive doubly-wrapped, e.g.
+          # `{{:shutdown, _}, {GenServer, :call, _}}` — whose head is a tuple, not
+          # the `:shutdown` atom, so the clauses above miss it. We are about to
+          # reconnect regardless; a failed close of the old socket must never crash
+          # the dispatcher worker (which would restart it into a fresh orphan).
+          Logger.debug(
+            "Pigeon.APNS: ignoring close error before reconnect: #{inspect(reason)}"
+          )
+
+          :ok
       end
     end
 
