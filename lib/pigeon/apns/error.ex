@@ -1,17 +1,24 @@
 defmodule Pigeon.APNS.Error do
   @moduledoc false
 
-  require Logger
-
   alias Pigeon.APNS.Notification
 
   @doc false
   @spec parse(binary) :: Notification.error_response()
   def parse(data) do
     data
-    |> Pigeon.json_library().decode!()
+    |> decode()
     |> Map.get("reason")
     |> parse_response()
+  end
+
+  @doc false
+  @spec decode(binary) :: map
+  def decode(data) do
+    case Pigeon.json_library().decode(data) do
+      {:ok, decoded} when is_map(decoded) -> decoded
+      _error -> %{"raw_response" => data}
+    end
   end
 
   defp parse_response("BadCollapseId"), do: :bad_collapse_id
