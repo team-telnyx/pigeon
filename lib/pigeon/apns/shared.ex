@@ -84,4 +84,9 @@ defmodule Pigeon.APNS.Shared do
 
   def add_port(opts, %{port: 443}), do: opts
   def add_port(opts, %{port: port}), do: [{:port, port} | opts]
+
+  # Consumed by `Pigeon.Http2.Client.Kadabra.connect/3`; never reaches
+  # `:ssl.connect/4` as a socket option.
+  def add_connect_timeout(opts, %{connect_timeout: timeout}),
+    do: [{:connect_timeout, timeout} | opts]
 end

@@ -66,7 +66,7 @@ jobs:
         env:
           PIGEON_SKIP_PROVIDER_WORKERS: "true"
         run: |
-          files="test/pigeon/http2_client_test.exs test/pigeon/notification_queue_test.exs test/pigeon/sandbox_test.exs"
+          files="test/pigeon/http2_client_test.exs test/pigeon/notification_queue_test.exs test/pigeon/sandbox_test.exs test/pigeon/connect_timeout_test.exs"
           if [ -f test/pigeon/dispatcher_worker_test.exs ]; then
             files="$files test/pigeon/dispatcher_worker_test.exs"
           fi

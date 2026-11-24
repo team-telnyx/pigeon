@@ -2,6 +2,8 @@ defmodule Pigeon.APNS.Config do
   @moduledoc false
 
   defstruct cert: nil,
+            connect_attempts: 3,
+            connect_timeout: 10_000,
             key: nil,
             port: 443,
             ping_period: 600_000,
@@ -17,6 +19,8 @@ defmodule Pigeon.APNS.Config do
 
       %Pigeon.APNS.Config{
         cert: "certificate_content",
+        connect_attempts: 3,
+        connect_timeout: 10_000,
         key: "key_content",
         uri: "api.push.apple.com",
         port: 443,
@@ -25,6 +29,8 @@ defmodule Pigeon.APNS.Config do
   """
   @type t :: %__MODULE__{
           cert: binary | nil,
+          connect_attempts: pos_integer,
+          connect_timeout: timeout(),
           key: binary | nil,
           uri: binary | nil,
           port: pos_integer,
@@ -44,10 +50,17 @@ defmodule Pigeon.APNS.Config do
     `443` and `2197`
   - `:ping_period` - Interval between server pings. Necessary to keep long
     running APNS connections alive. Defaults to 10 minutes.
+  - `:connect_timeout` - Milliseconds allowed for the TCP connect plus TLS
+    handshake of one connection attempt (`:ssl.connect/4` timeout), or
+    `:infinity`. Defaults to 10 seconds.
+  - `:connect_attempts` - How many times a connection is attempted before the
+    dispatcher gives up with the last error. Defaults to 3.
   """
   @type config_opts :: [
           mode: :dev | :prod | nil,
           cert: binary,
+          connect_attempts: pos_integer,
+          connect_timeout: timeout(),
           key: binary,
           ping_period: pos_integer,
           port: pos_integer,
@@ -72,10 +85,14 @@ defmodule Pigeon.APNS.Config do
       ...>   cert: File.read!("test/support/FakeAPNSCert.pem"),
       ...>   key: File.read!("test/support/FakeAPNSKey.pem"),
       ...>   port: 2197,
-      ...>   ping_period: 300_000
+      ...>   ping_period: 300_000,
+      ...>   connect_timeout: 5_000,
+      ...>   connect_attempts: 2
       ...> )
       %Pigeon.APNS.Config{
         cert: "test/support/FakeAPNSCert.pem" |> File.read!() |> Pigeon.APNS.Config.decode_pem(),
+        connect_attempts: 2,
+        connect_timeout: 5000,
         key: "test/support/FakeAPNSKey.pem" |> File.read!() |> Pigeon.APNS.Config.decode_pem(),
         ping_period: 300000, 
         port: 2197,
@@ -85,6 +102,8 @@ defmodule Pigeon.APNS.Config do
   def new(opts) when is_list(opts) do
     %__MODULE__{
       cert: opts |> Keyword.get(:cert) |> decode_pem(),
+      connect_attempts: Keyword.get(opts, :connect_attempts, 3),
+      connect_timeout: Keyword.get(opts, :connect_timeout, 10_000),
       key: opts |> Keyword.get(:key) |> decode_pem(),
       ping_period: Keyword.get(opts, :ping_period, 600_000),
       port: Keyword.get(opts, :port, 443),
@@ -166,5 +185,6 @@ defimpl Pigeon.Configurable, for: Pigeon.APNS.Config do
       :binary
     ]
     |> Shared.add_port(config)
+    |> Shared.add_connect_timeout(config)
   end
 end
