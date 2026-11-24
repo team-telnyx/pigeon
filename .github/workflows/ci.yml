@@ -10,7 +10,7 @@ on:
 jobs:
   prettier:
     name: Prettier
-    runs-on: ubuntu-latest
+    runs-on: telnyx-2xsmall
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -24,9 +24,7 @@ jobs:
         run: prettier --check --no-error-on-unmatched-pattern "**/*.{json,md,yml,yaml}"
   check:
     name: Format/Credo
-    # OTP 24.3 builds are not published for ubuntu-latest (26.04); keep 22.04
-    # until the toolchain is bumped.
-    runs-on: ubuntu-22.04
+    runs-on: telnyx-xsmall
     steps:
       - uses: actions/checkout@v3
       - name: Set up Elixir
@@ -48,7 +46,7 @@ jobs:
         run: mix credo
   test:
     name: Test
-    runs-on: ubuntu-22.04
+    runs-on: telnyx-xsmall
     steps:
       - uses: actions/checkout@v3
       - name: Set up Elixir
