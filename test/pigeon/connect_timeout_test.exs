@@ -93,4 +93,33 @@ defmodule Pigeon.ConnectTimeoutTest do
       assert Keyword.get(opts, :connect_timeout) == 10_000
     end
   end
+
+  describe "Http2.Client.Kadabra.pop_connect_timeout/1" do
+    test "extracts the timeout from a socket option list that holds bare atoms" do
+      config =
+        APNS.Config.new(
+          cert: @cert,
+          key: @key,
+          mode: :prod,
+          connect_timeout: 5_000
+        )
+
+      opts = socket_options(config)
+      assert :binary in opts
+
+      {timeout, rest} = Pigeon.Http2.Client.Kadabra.pop_connect_timeout(opts)
+      assert timeout == 5_000
+      refute List.keymember?(rest, :connect_timeout, 0)
+      assert :binary in rest
+      assert List.keymember?(rest, :cert, 0)
+    end
+
+    test "defaults to :infinity when absent" do
+      assert {:infinity, [:binary, {:packet, 0}]} ==
+               Pigeon.Http2.Client.Kadabra.pop_connect_timeout([
+                 :binary,
+                 {:packet, 0}
+               ])
+    end
+  end
 end
