@@ -1,12 +1,16 @@
 defmodule Pigeon.FCM.Config do
   @moduledoc false
 
-  defstruct port: 443,
+  defstruct connect_attempts: 3,
+            connect_timeout: 10_000,
+            port: 443,
             project_id: nil,
             service_account_json: nil,
-            uri: 'fcm.googleapis.com'
+            uri: ~c"fcm.googleapis.com"
 
   @type t :: %__MODULE__{
+          connect_attempts: pos_integer,
+          connect_timeout: timeout(),
           port: pos_integer,
           project_id: binary,
           service_account_json: binary,
@@ -23,6 +27,8 @@ defmodule Pigeon.FCM.Config do
       ...>   service_account_json: "{\"dummy\":\"contents\"}"
       ...> )
       %Pigeon.FCM.Config{
+        connect_attempts: 3,
+        connect_timeout: 10_000,
         port: 443,
         project_id: "example-project",
         service_account_json: %{"dummy" => "contents"},
@@ -41,10 +47,12 @@ defmodule Pigeon.FCM.Config do
       |> decode_json()
 
     %__MODULE__{
+      connect_attempts: Keyword.get(opts, :connect_attempts, 3),
+      connect_timeout: Keyword.get(opts, :connect_timeout, 10_000),
       port: Keyword.get(opts, :port, 443),
       project_id: project_id,
       service_account_json: service_account_json,
-      uri: Keyword.get(opts, :uri, 'fcm.googleapis.com')
+      uri: Keyword.get(opts, :uri, ~c"fcm.googleapis.com")
     }
   end
 
@@ -100,9 +108,14 @@ defimpl Pigeon.Configurable, for: Pigeon.FCM.Config do
         :binary
       ]
       |> add_port(config)
+      |> add_connect_timeout(config)
 
     {:ok, opts}
   end
+
+  # Consumed by `Pigeon.Http2.Client.Kadabra.connect/3`, not a socket option.
+  def add_connect_timeout(opts, %Config{connect_timeout: timeout}),
+    do: [{:connect_timeout, timeout} | opts]
 
   def add_port(opts, %Config{port: 443}), do: opts
   def add_port(opts, %Config{port: port}), do: [{:port, port} | opts]

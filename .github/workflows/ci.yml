@@ -10,7 +10,7 @@ on:
 jobs:
   prettier:
     name: Prettier
-    runs-on: ubuntu-latest
+    runs-on: telnyx-2xsmall
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -24,7 +24,7 @@ jobs:
         run: prettier --check --no-error-on-unmatched-pattern "**/*.{json,md,yml,yaml}"
   check:
     name: Format/Credo
-    runs-on: ubuntu-latest
+    runs-on: telnyx-xsmall
     steps:
       - uses: actions/checkout@v3
       - name: Set up Elixir
@@ -46,7 +46,7 @@ jobs:
         run: mix credo
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: telnyx-xsmall
     steps:
       - uses: actions/checkout@v3
       - name: Set up Elixir
@@ -66,7 +66,7 @@ jobs:
         env:
           PIGEON_SKIP_PROVIDER_WORKERS: "true"
         run: |
-          files="test/pigeon/http2_client_test.exs test/pigeon/notification_queue_test.exs test/pigeon/sandbox_test.exs"
+          files="test/pigeon/http2_client_test.exs test/pigeon/notification_queue_test.exs test/pigeon/sandbox_test.exs test/pigeon/connect_timeout_test.exs"
           if [ -f test/pigeon/dispatcher_worker_test.exs ]; then
             files="$files test/pigeon/dispatcher_worker_test.exs"
           fi

@@ -292,14 +292,22 @@ defmodule Pigeon.LegacyFCM do
     end
   end
 
-  defp connect_socket(config), do: connect_socket(config, 0)
+  # Each attempt is bounded by `config.connect_timeout` (see
+  # `Pigeon.Http2.Client.Kadabra.connect/3`); the worst case is
+  # `connect_attempts * connect_timeout`.
+  defp connect_socket(%{connect_attempts: attempts} = config),
+    do: connect_socket(config, attempts)
 
-  defp connect_socket(_config, 3), do: {:error, :timeout}
-
-  defp connect_socket(config, tries) do
+  defp connect_socket(config, attempts_left) do
     case Configurable.connect(config) do
-      {:ok, socket} -> {:ok, socket}
-      {:error, _reason} -> connect_socket(config, tries + 1)
+      {:ok, socket} ->
+        {:ok, socket}
+
+      {:error, _reason} when attempts_left > 1 ->
+        connect_socket(config, attempts_left - 1)
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

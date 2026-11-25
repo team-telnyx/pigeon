@@ -1,11 +1,15 @@
 defmodule Pigeon.LegacyFCM.Config do
   @moduledoc false
 
-  defstruct key: nil,
-            uri: 'fcm.googleapis.com',
+  defstruct connect_attempts: 3,
+            connect_timeout: 10_000,
+            key: nil,
+            uri: ~c"fcm.googleapis.com",
             port: 443
 
   @type t :: %__MODULE__{
+          connect_attempts: pos_integer,
+          connect_timeout: timeout(),
           key: binary,
           port: pos_integer,
           uri: charlist
@@ -22,6 +26,8 @@ defmodule Pigeon.LegacyFCM.Config do
       ...>   port: 5228
       ...> )
       %Pigeon.LegacyFCM.Config{
+        connect_attempts: 3,
+        connect_timeout: 10_000,
         key: "fcm_key",
         port: 5228, 
         uri: 'test.server.example.com'
@@ -29,8 +35,10 @@ defmodule Pigeon.LegacyFCM.Config do
   """
   def new(opts) when is_list(opts) do
     %__MODULE__{
+      connect_attempts: Keyword.get(opts, :connect_attempts, 3),
+      connect_timeout: Keyword.get(opts, :connect_timeout, 10_000),
       key: Keyword.get(opts, :key),
-      uri: Keyword.get(opts, :uri, 'fcm.googleapis.com'),
+      uri: Keyword.get(opts, :uri, ~c"fcm.googleapis.com"),
       port: Keyword.get(opts, :port, 443)
     }
   end
@@ -68,9 +76,14 @@ defimpl Pigeon.Configurable, for: Pigeon.LegacyFCM.Config do
         :binary
       ]
       |> add_port(config)
+      |> add_connect_timeout(config)
 
     {:ok, opts}
   end
+
+  # Consumed by `Pigeon.Http2.Client.Kadabra.connect/3`, not a socket option.
+  def add_connect_timeout(opts, %Config{connect_timeout: timeout}),
+    do: [{:connect_timeout, timeout} | opts]
 
   def add_port(opts, %Config{port: 443}), do: opts
   def add_port(opts, %Config{port: port}), do: [{:port, port} | opts]

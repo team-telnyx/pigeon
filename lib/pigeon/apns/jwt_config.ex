@@ -1,7 +1,9 @@
 defmodule Pigeon.APNS.JWTConfig do
   @moduledoc false
 
-  defstruct key: nil,
+  defstruct connect_attempts: 3,
+            connect_timeout: 10_000,
+            key: nil,
             key_identifier: nil,
             ping_period: 600_000,
             port: 443,
@@ -24,6 +26,8 @@ defmodule Pigeon.APNS.JWTConfig do
         uri: "api.push.apple.com",
         port: 443,
         ping_period: 600_000,
+        connect_attempts: 3,
+        connect_timeout: 10_000,
         key: nil,
         key_identifier: "ABC1234567",
         team_id: "DEF1234567"
@@ -33,6 +37,8 @@ defmodule Pigeon.APNS.JWTConfig do
           uri: binary | nil,
           port: pos_integer,
           ping_period: pos_integer,
+          connect_attempts: pos_integer,
+          connect_timeout: timeout(),
           key: binary | nil | {:error, term},
           key_identifier: binary | nil,
           team_id: binary | nil
@@ -83,7 +89,9 @@ defmodule Pigeon.APNS.JWTConfig do
         key_identifier: "ABC1234567", 
         key: File.read!("test/support/FakeAPNSAuthKey.p8"),
         ping_period: 300000, 
-        port: 2197
+        port: 2197,
+        connect_attempts: 3,
+        connect_timeout: 10000
       }
   """
   def new(opts) when is_list(opts) do
@@ -91,6 +99,8 @@ defmodule Pigeon.APNS.JWTConfig do
       uri: Keyword.get(opts, :uri, ConfigParser.uri_for_mode(opts[:mode])),
       port: Keyword.get(opts, :port, 443),
       ping_period: Keyword.get(opts, :ping_period, 600_000),
+      connect_attempts: Keyword.get(opts, :connect_attempts, 3),
+      connect_timeout: Keyword.get(opts, :connect_timeout, 10_000),
       key: decode_key(opts[:key]),
       key_identifier: Keyword.get(opts, :key_identifier),
       team_id: Keyword.get(opts, :team_id)
@@ -179,6 +189,7 @@ defimpl Pigeon.Configurable, for: Pigeon.APNS.JWTConfig do
       :binary
     ]
     |> Shared.add_port(config)
+    |> Shared.add_connect_timeout(config)
   end
 
   @spec put_bearer_token(headers, JWTConfig.t()) :: headers

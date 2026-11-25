@@ -9,7 +9,20 @@ defmodule Pigeon.Http2.Client.Kadabra do
 
   def connect(uri, scheme, opts) do
     host = "#{scheme}://#{uri}"
-    Kadabra.open(host, ssl: opts)
+    # `:connect_timeout` bounds `:ssl.connect/4` (TCP connect + TLS handshake)
+    # in Kadabra; it is not a socket option, so keep it out of `:ssl`.
+    {connect_timeout, ssl_opts} = pop_connect_timeout(opts)
+    Kadabra.open(host, ssl: ssl_opts, connect_timeout: connect_timeout)
+  end
+
+  # The socket option list is not a strict keyword list (it carries bare atoms
+  # such as `:binary`), so `Keyword.pop/3` would raise. Walk it instead.
+  @doc false
+  def pop_connect_timeout(opts) do
+    case List.keytake(opts, :connect_timeout, 0) do
+      {{:connect_timeout, timeout}, rest} -> {timeout, rest}
+      nil -> {:infinity, opts}
+    end
   end
 
   def send_request(pid, headers, data) do
